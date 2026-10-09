@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sudoku</title>
+<style>
+:root{--bg:#f4f1ea;--panel:#fff;--ink:#1d1d1f;--mute:#6e6e73;--line:#c9c5bb;--thick:#1d1d1f;--acc:#2f6fed;--sel:#cfe0ff;--same:#dbe7ff;--rel:#eef3ff;--bad:#d93025;--btn:#ebe8e0;--cell:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121214;--panel:#1c1c1f;--ink:#f2f2f4;--mute:#9a9aa2;--line:#3a3a40;--thick:#d8d8de;--acc:#6b9bff;--sel:#2c4a8a;--same:#263a66;--rel:#1f2638;--bad:#ff6b60;--btn:#2a2a2f;--cell:#1c1c1f}}
+:root[data-theme="dark"]{--bg:#121214;--panel:#1c1c1f;--ink:#f2f2f4;--mute:#9a9aa2;--line:#3a3a40;--thick:#d8d8de;--acc:#6b9bff;--sel:#2c4a8a;--same:#263a66;--rel:#1f2638;--bad:#ff6b60;--btn:#2a2a2f;--cell:#1c1c1f}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;min-height:100vh;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.app{display:flex;flex-direction:column;align-items:center;gap:18px;padding:16px;max-width:1100px;margin:0 auto}
+.board-wrap{position:relative;--b:min(94vw,64vh)}
+.board{width:var(--b);height:var(--b);display:grid;grid-template-columns:repeat(9,1fr);border:3px solid var(--thick);background:var(--cell)}
+.cell{position:relative;display:flex;align-items:center;justify-content:center;border-right:1px solid var(--line);border-bottom:1px solid var(--line);font-size:calc(var(--b)/16);color:var(--acc);cursor:pointer}
+.cell.cr{border-right:3px solid var(--thick)}.cell.cb{border-bottom:3px solid var(--thick)}
+.cell:nth-child(9n){border-right:0}.cell:nth-child(n+73){border-bottom:0}
+.cell.given{color:var(--ink);font-weight:700}
+.cell.rel{background:var(--rel)}.cell.same{background:var(--same)}.cell.sel{background:var(--sel)}
+.cell.bad{color:var(--bad)}
+.notes{position:absolute;inset:2px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);font-size:calc(var(--b)/42);color:var(--mute);text-align:center;line-height:1;pointer-events:none}
+.notes span{display:flex;align-items:center;justify-content:center}
+.panel{width:min(94vw,520px);display:flex;flex-direction:column;gap:14px}
+.top{display:flex;justify-content:space-between;align-items:baseline}
+h1{margin:0;font-size:30px}
+#timer{font-variant-numeric:tabular-nums;color:var(--mute);font-size:22px}
+.seg{display:flex;background:var(--btn);border-radius:10px;padding:3px}
+.seg button{flex:1;border:0;background:none;color:var(--ink);font:inherit;font-size:16px;padding:10px 4px;border-radius:8px}
+.seg button.on{background:var(--panel);box-shadow:0 1px 3px rgba(0,0,0,.25);font-weight:600}
+button{font-family:inherit}
+.btn{border:0;border-radius:12px;background:var(--btn);color:var(--ink);font-size:17px;padding:14px 8px;cursor:pointer}
+.btn:active{filter:brightness(.9)}
+.btn.prim{background:var(--acc);color:#fff;font-weight:600}
+.btn.on{background:#f0a030;color:#000}
+.btn:disabled{opacity:.3}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pad .btn{font-size:28px;font-weight:600;padding:14px 0}
+.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+label{display:flex;gap:10px;align-items:center;color:var(--mute);font-size:16px}
+input[type=checkbox]{width:22px;height:22px}
+.overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:color-mix(in srgb,var(--bg) 88%,transparent);font-size:22px;text-align:center;padding:20px}
+.overlay.show{display:flex}
+@media (orientation:landscape) and (min-width:800px){
+.app{flex-direction:row;justify-content:center;align-items:center;min-height:100vh;gap:36px}
+.board-wrap{--b:min(88vh,58vw)}
+.panel{width:min(36vw,380px)}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="board-wrap">
+    <div class="board" id="board"></div>
+    <div class="overlay" id="busy">Generating…</div>
+    <div class="overlay" id="win"><b style="font-size:32px">Solved! 🎉</b><span id="winmsg"></span><button class="btn prim" id="again">New Puzzle</button></div>
+  </div>
+  <div class="panel">
+    <div class="top"><h1>Sudoku</h1><span id="timer">0:00</span></div>
+    <div class="seg" id="diff"></div>
+    <button class="btn prim" id="new">↻ New Puzzle</button>
+    <div class="pad" id="pad"></div>
+    <div class="tools">
+      <button class="btn" id="notes">✎ Notes</button>
+      <button class="btn" id="erase">⌫ Erase</button>
+      <button class="btn" id="hint">💡 Hint</button>
+    </div>
+    <label><input type="checkbox" id="mist" checked> Highlight mistakes</label>
+  </div>
+</div>
+<script>
+// ---------- Engine ----------
+const box = i => ((i / 27 | 0) * 3) + ((i % 9) / 3 | 0);
+const pc = n => { let k = 0; while (n) { n &= n - 1; k++; } return k; };
+const rel = (a, b) => a / 9 | 0 === b / 9 | 0 || a % 9 === b % 9 || box(a) === box(b);
+const related = (a, b) => (a / 9 | 0) === (b / 9 | 0) || a % 9 === b % 9 || box(a) === box(b);
+
+class Eng {
+  constructor(g) {
+    this.g = Array(81).fill(0);
+    this.r = Array(9).fill(0); this.c = Array(9).fill(0); this.b = Array(9).fill(0);
+    g.forEach((v, i) => v && this.set(i, v));
+  }
+  set(i, v) { const m = 1 << v; this.r[i / 9 | 0] |= m; this.c[i % 9] |= m; this.b[box(i)] |= m; this.g[i] = v; }
+  clr(i) { const m = ~(1 << this.g[i]); this.r[i / 9 | 0] &= m; this.c[i % 9] &= m; this.b[box(i)] &= m; this.g[i] = 0; }
+  mask(i) { return ~(this.r[i / 9 | 0] | this.c[i % 9] | this.b[box(i)]) & 0x3FE; }
+  pick() {
+    let best = -1, bc = 10;
+    for (let i = 0; i < 81; i++) if (!this.g[i]) {
+      const n = pc(this.mask(i));
+      if (n < bc) { best = i; bc = n; if (!n) break; }
+    }
+    return best < 0 ? null : [best, bc];
+  }
+  count(limit) {
+    const p = this.pick(); if (!p) return 1; if (!p[1]) return 0;
+    let t = 0; const m = this.mask(p[0]);
+    for (let v = 1; v <= 9 && t < limit; v++) if (m & (1 << v)) {
+      this.set(p[0], v); t += this.count(limit - t); this.clr(p[0]);
+    }
+    return t;
+  }
+  fill() {
+    const p = this.pick(); if (!p) return true; if (!p[1]) return false;
+    const m = this.mask(p[0]), o = [];
+    for (let v = 1; v <= 9; v++) if (m & (1 << v)) o.push(v);
+    for (let k = o.length - 1; k > 0; k--) { const j = Math.random() * (k + 1) | 0; [o[k], o[j]] = [o[j], o[k]]; }
+    for (const v of o) { this.set(p[0], v); if (this.fill()) return true; this.clr(p[0]); }
+    return false;
+  }
+}
+const LEVELS = { Easy: 40, Medium: 34, Hard: 29, Expert: 25 };
+function generate(level) {
+  const e = new Eng(Array(81).fill(0)); e.fill();
+  const sol = e.g.slice(), puz = sol.slice(), order = [...Array(81).keys()];
+  for (let k = 80; k > 0; k--) { const j = Math.random() * (k + 1) | 0; [order[k], order[j]] = [order[j], order[k]]; }
+  let givens = 81;
+  for (const i of order) {
+    if (givens <= LEVELS[level]) break;
+    const s = puz[i]; puz[i] = 0;
+    if (new Eng(puz).count(2) === 1) givens--; else puz[i] = s;
+  }
+  return { puz, sol };
+}
+
+// ---------- State & UI ----------
+let puz = [], sol = [], val = [], notes = [], sel = null, notesMode = false, level = 'Medium', elapsed = 0, solved = false, busy = false;
+const $ = id => document.getElementById(id);
+const boardEl = $('board'), cells = [];
+for (let i = 0; i < 81; i++) {
+  const d = document.createElement('div');
+  d.className = 'cell' + (i % 9 % 3 === 2 && i % 9 < 8 ? ' cr' : '') + ((i / 9 | 0) % 3 === 2 && i / 9 < 8 ? ' cb' : '');
+  d.innerHTML = '<span class="v"></span><div class="notes"></div>';
+  d.onclick = () => { sel = i; render(); };
+  boardEl.appendChild(d); cells.push(d);
+}
+Object.keys(LEVELS).forEach(l => {
+  const b = document.createElement('button'); b.textContent = l;
+  b.onclick = () => { level = l; newGame(); };
+  $('diff').appendChild(b);
+});
+const padBtns = [];
+for (let n = 1; n <= 9; n++) {
+  const b = document.createElement('button'); b.className = 'btn'; b.textContent = n;
+  b.onclick = () => enter(n); $('pad').appendChild(b); padBtns.push(b);
+}
+
+function render() {
+  const mist = $('mist').checked;
+  cells.forEach((el, i) => {
+    const v = val[i];
+    el.classList.toggle('given', !!puz[i]);
+    el.classList.remove('sel', 'same', 'rel', 'bad');
+    if (sel !== null) {
+      if (sel === i) el.classList.add('sel');
+      else if (val[sel] && val[sel] === v) el.classList.add('same');
+      else if (related(sel, i)) el.classList.add('rel');
+    }
+    if (mist && v && !puz[i] && v !== sol[i]) el.classList.add('bad');
+    el.firstChild.textContent = v || '';
+    const nEl = el.lastChild;
+    if (!v && notes[i].size) {
+      let h = ''; for (let n = 1; n <= 9; n++) h += '<span>' + (notes[i].has(n) ? n : '') + '</span>';
+      nEl.innerHTML = h;
+    } else nEl.innerHTML = '';
+  });
+  padBtns.forEach((b, k) => b.disabled = val.filter(x => x === k + 1).length >= 9);
+  [...$('diff').children].forEach(b => b.classList.toggle('on', b.textContent === level));
+  $('notes').classList.toggle('on', notesMode);
+}
+
+function enter(n) {
+  if (sel === null || puz[sel] || solved) return;
+  if (notesMode) {
+    if (val[sel]) return;
+    notes[sel].has(n) ? notes[sel].delete(n) : notes[sel].add(n);
+  } else {
+    if (val[sel] === n) val[sel] = 0;
+    else {
+      val[sel] = n; notes[sel] = new Set();
+      for (let i = 0; i < 81; i++) if (related(i, sel)) notes[i].delete(n);
+    }
+    checkSolved();
+  }
+  render();
+}
+function checkSolved() {
+  if (val.every((v, i) => v === sol[i])) {
+    solved = true; sel = null;
+    $('winmsg').textContent = level + ' puzzle finished in ' + fmt(elapsed);
+    $('win').classList.add('show');
+  }
+}
+const fmt = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+
+function newGame() {
+  busy = true; $('busy').classList.add('show'); $('win').classList.remove('show');
+  setTimeout(() => {
+    const g = generate(level);
+    puz = g.puz; sol = g.sol; val = puz.slice();
+    notes = Array.from({ length: 81 }, () => new Set());
+    sel = null; solved = false; elapsed = 0; $('timer').textContent = '0:00';
+    busy = false; $('busy').classList.remove('show'); render();
+  }, 30);
+}
+
+$('new').onclick = newGame; $('again').onclick = newGame;
+$('notes').onclick = () => { notesMode = !notesMode; render(); };
+$('erase').onclick = () => { if (sel !== null && !puz[sel] && !solved) { val[sel] = 0; notes[sel] = new Set(); render(); } };
+$('hint').onclick = () => {
+  if (solved) return;
+  let t = (sel !== null && !puz[sel] && val[sel] !== sol[sel]) ? sel : null;
+  if (t === null) {
+    const bad = [...Array(81).keys()].filter(i => val[i] !== sol[i]);
+    t = bad[Math.random() * bad.length | 0];
+  }
+  val[t] = sol[t]; notes[t] = new Set(); sel = t; checkSolved(); render();
+};
+$('mist').onchange = render;
+
+document.addEventListener('keydown', e => {
+  if (e.key >= '1' && e.key <= '9') enter(+e.key);
+  else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') $('erase').onclick();
+  else if (sel !== null && e.key.startsWith('Arrow')) {
+    const d = { ArrowUp: -9, ArrowDown: 9, ArrowLeft: -1, ArrowRight: 1 }[e.key], n = sel + d;
+    if (n >= 0 && n < 81 && !(d === 1 && sel % 9 === 8) && !(d === -1 && sel % 9 === 0)) { sel = n; render(); }
+    e.preventDefault();
+  }
+});
+setInterval(() => { if (!busy && !solved) { elapsed++; $('timer').textContent = fmt(elapsed); } }, 1000);
+puz = Array(81).fill(0); sol = puz.slice(); val = puz.slice(); notes = Array.from({ length: 81 }, () => new Set());
+newGame();
+</script>
+</body>
+</html>
