@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Family Games</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Games">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎲</text></svg>">
+<style>
+:root{
+  --bg:#f4f1ea; --ink:#1d1d1f; --tile:#ffffff; --edge:#2f6fed; --mute:#55555a;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#121214; --ink:#f2f2f4; --tile:#1f1f23; --edge:#6b9bff; --mute:#b0b0b8}
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  min-height:100vh; padding:24px;
+}
+main{max-width:900px; margin:0 auto}
+h1{font-size:clamp(2.4rem,7vw,4rem); text-align:center; margin:12px 0 8px}
+.sub{text-align:center; font-size:clamp(1.2rem,3.5vw,1.8rem); color:var(--mute); margin:0 0 32px}
+.grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:24px}
+.tile{
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
+  min-height:240px; padding:24px;
+  background:var(--tile); color:var(--ink);
+  border:5px solid var(--edge); border-radius:28px;
+  text-decoration:none; text-align:center;
+  box-shadow:0 4px 14px rgba(0,0,0,.15);
+}
+.tile:active{transform:scale(.98)}
+.tile:focus-visible{outline:6px solid var(--ink); outline-offset:4px}
+.icon{font-size:clamp(4rem,12vw,6rem); line-height:1}
+.name{font-size:clamp(2rem,6vw,3rem); font-weight:700}
+</style>
+</head>
+<body>
+<main>
+  <h1>Family Games</h1>
+  <p class="sub">Tap a game to play</p>
+
+  <div class="grid">
+
+    <a class="tile" href="sudoku/">
+      <span class="icon">🔢</span>
+      <span class="name">Sudoku</span>
+    </a>
+
+    <!-- To add another game later, copy the block above, paste it here,
+         and change the folder name, the emoji and the title. Example:
+
+    <a class="tile" href="crossword/">
+      <span class="icon">✏️</span>
+      <span class="name">Crossword</span>
+    </a>
+    -->
+
+  </div>
+</main>
+</body>
+</html>
